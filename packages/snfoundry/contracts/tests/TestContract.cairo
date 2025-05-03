@@ -37,3 +37,20 @@ fn test_counter_deployment() {
     assert(count_1 == ZERO_COUNT, 'count not set');
     assert(ownable.owner() == OWNER(), 'owner not set');
 }
+
+#[test]
+fn test_increase_counter() {
+    let (counter, ownable) = __deploy__(ZERO_COUNT);
+    // get current count
+    let count_1 = counter.get_counter();
+
+    // assertions
+    assert(count_1 == ZERO_COUNT, 'count not set');
+
+    // state-changing txs
+    counter.increase_counter();
+
+    // retrieve current count
+    let count_2 = counter.get_counter();
+    assert(count_2 == count_1 + 1, 'invalid count');
+}
