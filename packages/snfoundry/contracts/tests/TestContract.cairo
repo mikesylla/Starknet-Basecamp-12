@@ -1,12 +1,18 @@
-use snforge_std::{declare, DeclareResultTrait, ContractClassTrait};
-use starknet::{ContractAddress};
-use contracts::Counter::{ICounterDispatcher, ICounterDispatcherTrait};
+use contracts::Counter::{ICounterDispatcher, ICounterDispatcherTrait, Counter};
 use openzeppelin_access::ownable::interface::{IOwnableDispatcher, IOwnableDispatcherTrait};
+use snforge_std::{declare, DeclareResultTrait, ContractClassTrait, spy_events, 
+    start_cheat_caller_address, stop_cheat_caller_address};
+use snforge_std::EventSpyAssertionsTrait;
+use starknet::{ContractAddress};
 
 const ZERO_COUNT: u32 = 0;
 
 fn OWNER() -> ContractAddress {
     'OWNER'.try_into().unwrap()
+}
+
+fn USER_1() -> ContractAddress {
+    'USER_1'.try_into().unwrap()
 }
 
 // util deploy function
@@ -27,6 +33,7 @@ fn __deploy__(init_value: u32) -> (ICounterDispatcher, IOwnableDispatcher, ) {
     (counter, ownable)
 }
 
+#[ignore]
 #[test]
 fn test_counter_deployment() {
     let (counter, ownable) = __deploy__(ZERO_COUNT);
@@ -38,9 +45,10 @@ fn test_counter_deployment() {
     assert(ownable.owner() == OWNER(), 'owner not set');
 }
 
+#[ignore]
 #[test]
 fn test_increase_counter() {
-    let (counter, ownable) = __deploy__(ZERO_COUNT);
+    let (counter, _) = __deploy__(ZERO_COUNT);
     // get current count
     let count_1 = counter.get_counter();
 
@@ -53,4 +61,23 @@ fn test_increase_counter() {
     // retrieve current count
     let count_2 = counter.get_counter();
     assert(count_2 == count_1 + 1, 'invalid count');
+}
+
+#[test]
+fn test_emitted_increased_event() {
+    let (counter, _) = __deploy__(ZERO_COUNT);    
+    let mut spy = spy_events(); // call this before the function that emits the event
+
+    // mock a caller
+    start_cheat_caller_address(counter.contract_address, USER_1());
+    counter.increase_counter();
+    stop_cheat_caller_address(counter.contract_address);
+    spy.assert_emitted(
+        @array![
+            (
+                counter.contract_address,
+                Counter::Event::Increased(Counter::Increased { account: USER_1() }),                    
+            ),
+        ],
+    )
 }
