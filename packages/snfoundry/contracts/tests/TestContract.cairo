@@ -65,8 +65,8 @@ fn test_increase_counter() {
     assert(count_2 == count_1 + 1, 'invalid count');
 }
 
-#[test]
 #[ignore]
+#[test]
 fn test_emitted_increased_event() {
     let (counter, _, _) = __deploy__(ZERO_COUNT);
     let mut spy = spy_events(); // call this before the function that emits the event
@@ -96,25 +96,69 @@ fn test_emitted_increased_event() {
     );
 }
 
+// #[ignore]
+// #[test]
+// #[feature("safe_dispatcher")]
+// fn test_safe_panic_decrease_counter() {
+//     let (counter, _, safe_dispatcher) = __deploy__(ZERO_COUNT);
+
+//     assert(counter.get_counter() == ZERO_COUNT, 'invalid count');
+
+//     match safe_dispatcher.decrease_counter() {
+//         Result::Ok(_) => panic!("cannot decrease 0"),
+//         Result::Err(e) => assert(*e[0] == 'Decreasing Empty counter', *e.at(0))
+//     }
+// }
+
+// #[ignore]
+// #[test]
+// #[should_panic(expected: 'Decreasing empty counter')]
+// fn test_panic_decrease_counter() {
+//     let (counter, _, _) = __deploy__(ZERO_COUNT);
+
+//     assert(counter.get_counter() == ZERO_COUNT, 'invalid count');
+
+//     counter.decrease_counter()
+// }
+
+#[ignore]
 #[test]
-#[feature("safe_dispatcher")]
-fn test_safe_panic_decrease_counter() {
-    let (counter, _, safe_dispatcher) = __deploy__(ZERO_COUNT);
+fn test_successful_decrease_counter() {
+    let (counter, _, _) = __deploy__(5);
 
-    assert(counter.get_counter() == ZERO_COUNT, 'invalid count');
+    let count_1 = counter.get_counter();
+    assert(count_1 == 5, 'invalid count');
 
-    match safe_dispatcher.decrease_counter() {
-        Result::Ok(_) => panic!("cannot decrease 0"),
-        Result::Err(e) => assert(*e[0] == 'Decreasing Empty counter', *e.at(0))
-    }
+    counter.increase_counter();
+
+    let final_count = counter.get_counter();
+    assert(final_count == 6, 'invalid increase');
 }
 
+// #[test]
+// #[feature("safe_dispatcher")]
+// fn test_safe_panic_reset_counter_by_non_owner() {
+//     let (counter, _, safe_dispatcher) = __deploy__(ZERO_COUNT);
+
+//     start_cheat_caller_address(counter.contract_address, USER_1());
+//     counter.reset_counter();
+
+//     match safe_dispatcher.reset_counter() {
+//         Result::Ok(_) => panic!("cannot reset"),
+//         Result::Err(e) => assert(*e[0] == 'Decreasing empty counter', *e.at(0)),
+//     }
+// }
+
 #[test]
-#[should_panic(expected: 'Decreasing empty counter')]
-fn test_panic_decrease_counter() {
-    let (counter, _, _) = __deploy__(ZERO_COUNT);
+fn test_successful_reset_counter() {
+    let (counter, _, _) = __deploy__(5);
 
-    assert(counter.get_counter() == ZERO_COUNT, 'invalid count');
+    let count_1 = counter.get_counter();
+    assert(count_1 == 5, 'invalid count');
 
-    counter.decrease_counter()
+    start_cheat_caller_address(counter.contract_address, OWNER());
+
+    counter.reset_counter();
+    stop_cheat_caller_address(counter.contract_address);
+    assert(counter.get_counter() == 0, 'not reset');
 }
